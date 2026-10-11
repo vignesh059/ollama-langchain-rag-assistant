@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ollama AI Chatbot & Admin Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div id="app-container">
+    <!-- Top Global Navigation Bar -->
+    <header class="top-navbar">
+      <div class="nav-left">
+        <div class="brand-badge">
+          <div class="brand-icon">🤖</div>
+          <div class="brand-meta">
+            <span class="brand-title">Ollama AI</span>
+            <span class="brand-tag">LangChain • RAG • Tools</span>
+          </div>
+        </div>
+
+        <!-- Engine Status & Model Selector (User Chat View Only) -->
+        <div id="user-nav-controls" class="nav-controls">
+          <div id="ollama-status-badge" class="status-badge offline">
+            <span class="status-dot"></span> <span id="status-text">Checking...</span>
+          </div>
+
+          <div class="model-picker-wrap">
+            <span class="picker-label">Model:</span>
+            <select id="model-select" class="nav-select">
+              <option value="llama3.2:latest">llama3.2:latest</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Header Actions -->
+      <div class="nav-right">
+        <!-- Clear Chat Memory (User View Only) -->
+        <button id="clear-memory-btn" class="nav-btn nav-btn-ghost" title="Clear Conversation History">
+          <span>🧹 Clear Chat</span>
+        </button>
+
+        <!-- User Greeting Profile Chip -->
+        <div id="user-profile-chip" class="user-greeting-chip" style="display: none;">
+          <div class="user-avatar-circle" id="user-avatar-letter">U</div>
+          <div class="user-meta">
+            <div class="user-welcome-text">
+              Welcome, <span id="user-name-display" class="user-highlight">User</span>
+            </div>
+            <span id="user-role-badge" class="role-badge user">user</span>
+          </div>
+        </div>
+
+        <!-- Sign Out Button -->
+        <button id="logout-btn" class="nav-btn nav-btn-danger" title="Sign Out">
+          <span>🚪 Sign Out</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN BODY CONTAINER -->
+    <main class="main-body">
+
+      <!-- ==================================================== -->
+      <!-- VIEW 1: NORMAL USER CHAT VIEW -->
+      <!-- ==================================================== -->
+      <section id="user-chat-view" class="view-panel active">
+        <!-- Chat Messages Viewport -->
+        <div id="chat-messages" class="chat-messages">
+          <!-- Dynamically populated or welcome hero added on user login -->
+        </div>
+
+        <!-- Chat Input Bar -->
+        <div class="chat-input-wrapper">
+          <!-- Active PDF Attachment Pill (Above input when file attached) -->
+          <div id="pdf-status-container" class="attachment-preview-container"></div>
+
+          <div class="chat-input-card">
+            <!-- Pin Icon Button for PDF Upload -->
+            <input type="file" id="pdf-upload-input" accept=".pdf" style="display: none;">
+            <button type="button" id="pin-upload-btn" class="pin-attach-btn" title="Attach PDF Document (RAG Q&A)">
+              <span class="pin-icon">📎</span>
+            </button>
+
+            <!-- Text Area -->
+            <textarea
+              id="chat-input"
+              class="chat-input-field"
+              placeholder="Ask anything or attach a PDF to query..."
+              rows="1"
+            ></textarea>
+
+            <!-- Send Button -->
+            <button id="send-btn" class="send-action-btn" title="Send message (Enter)">
+              <span class="send-icon">➔</span>
+            </button>
+          </div>
+          <div class="input-hint-caption">
+            Press <kbd>Enter</kbd> to send • <kbd>Shift+Enter</kbd> for new line • Use <span class="pin-hint-tag">📎</span> to upload documents
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================================================== -->
+      <!-- VIEW 2: DEDICATED ADMIN PORTAL VIEW (Users List ONLY) -->
+      <!-- ==================================================== -->
+      <section id="admin-view" class="view-panel" style="display: none;">
+        <div class="admin-container">
+          <!-- Admin Dashboard Header -->
+          <div class="admin-header-card">
+            <div class="admin-header-left">
+              <div class="admin-crown-icon">👑</div>
+              <div>
+                <h1 class="admin-headline">Admin User Management</h1>
+                <p class="admin-subheadline">Comprehensive view of all registered accounts and system credentials.</p>
+              </div>
+            </div>
+            <div class="admin-header-right">
+              <div id="admin-user-count-badge" class="count-badge">
+                <span class="count-dot"></span>
+                <span id="total-users-count">Loading users...</span>
+              </div>
+              <button id="admin-refresh-btn" class="btn btn-secondary btn-sm">
+                🔄 Refresh List
+              </button>
+            </div>
+          </div>
+
+          <!-- Admin Toolbar (Search & Filter) -->
+          <div class="admin-toolbar">
+            <div class="search-input-box">
+              <span class="search-icon">🔍</span>
+              <input
+                type="text"
+                id="admin-search-input"
+                class="admin-search-field"
+                placeholder="Search users by username, email, ID, or role..."
+              >
+            </div>
+          </div>
+
+          <!-- Users Table Card -->
+          <div class="admin-table-card">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th style="width: 80px;">User ID</th>
+                  <th>Username</th>
+                  <th>Email Address</th>
+                  <th style="width: 140px;">System Role</th>
+                  <th style="width: 220px;">Created Date</th>
+                </tr>
+              </thead>
+              <tbody id="admin-user-table-body">
+                <tr>
+                  <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    Loading registered users...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ==================================================== -->
+  <!-- AUTHENTICATION MODAL (Login / Register) -->
+  <!-- ==================================================== -->
+  <div id="auth-modal" class="modal-overlay">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-brand-logo">🤖</div>
+        <h2 class="auth-title">Welcome to Ollama AI</h2>
+        <p class="auth-subtitle">Sign in to start chatting or manage the admin portal</p>
+      </div>
+
+      <!-- Auth Switcher Tabs -->
+      <div class="auth-tabs">
+        <button id="tab-login-btn" class="auth-tab-btn active">Sign In</button>
+        <button id="tab-register-btn" class="auth-tab-btn">Create Account</button>
+      </div>
+
+      <!-- Auth Alert Banner (Styled for visible errors) -->
+      <div id="auth-alert" class="auth-alert" style="display: none;"></div>
+
+      <!-- Sign In Form -->
+      <form id="login-form" class="auth-form" autocomplete="off">
+        <div class="form-group">
+          <label class="form-label" for="login-username">Username</label>
+          <div class="input-with-icon">
+            <span class="input-icon">👤</span>
+            <input
+              type="text"
+              id="login-username"
+              class="form-control"
+              placeholder="Enter your username"
+              required
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-password">Password</label>
+          <div class="input-with-icon">
+            <span class="input-icon">🔒</span>
+            <input
+              type="password"
+              id="login-password"
+              class="form-control"
+              placeholder="Enter your password"
+              required
+            >
+          </div>
+        </div>
+
+        <!-- Quick Fill Credentials helper -->
+        <div class="demo-account-box">
+          <div class="demo-box-header">
+            <span>💡 <strong>Admin Quick Credentials</strong></span>
+            <button type="button" id="fill-admin-btn" class="quick-fill-btn">⚡ Quick Fill</button>
+          </div>
+          <div class="demo-cred-row">
+            <span>Username: <code>admin</code></span>
+            <span>Password: <code>adminpassword</code></span>
+          </div>
+        </div>
+
+        <button type="submit" id="login-submit-btn" class="btn btn-primary btn-block">
+          <span>Sign In to Continue</span>
+        </button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="register-form" class="auth-form" style="display: none;" autocomplete="off">
+        <div class="form-group">
+          <label class="form-label" for="reg-username">Username</label>
+          <div class="input-with-icon">
+            <span class="input-icon">👤</span>
+            <input
+              type="text"
+              id="reg-username"
+              class="form-control"
+              placeholder="Choose a username (min 3 chars)"
+              required
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-email">Email Address</label>
+          <div class="input-with-icon">
+            <span class="input-icon">✉️</span>
+            <input
+              type="email"
+              id="reg-email"
+              class="form-control"
+              placeholder="you@example.com"
+              required
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-password">Password</label>
+          <div class="input-with-icon">
+            <span class="input-icon">🔒</span>
+            <input
+              type="password"
+              id="reg-password"
+              class="form-control"
+              placeholder="Create a password (min 4 chars)"
+              required
+            >
+          </div>
+        </div>
+
+        <button type="submit" id="reg-submit-btn" class="btn btn-primary btn-block">
+          <span>Create My Account</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
