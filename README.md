@@ -328,9 +328,6 @@ python ui/main_window.py
 
 ### Admin account
 
-- Username: `admin`
-- Password: `adminpassword`
-
 This account can access the admin users portal directly.
 
 ### User account
